@@ -5,19 +5,19 @@
   "buttons": {
     "0": {
       "note": 38,
-      "label": "□  Square"
+      "label": "Square"
     },
     "1": {
       "note": 36,
-      "label": "✕  Cross"
+      "label": "Cross"
     },
     "2": {
       "note": 37,
-      "label": "○  Circle"
+      "label": "Circle"
     },
     "3": {
       "note": 39,
-      "label": "△  Triangle"
+      "label": "Triangle"
     },
     "4": {
       "note": 44,
@@ -53,11 +53,11 @@
     },
     "12": {
       "note": 52,
-      "label": "PS / Menu"
+      "label": "PS"
     },
     "13": {
       "note": 53,
-      "label": "Mic mute?"
+      "label": "Mic mute"
     },
     "14": {
       "note": 54,

@@ -3,18 +3,23 @@
 """
 DualSense (PS5) -> MIDI bridge for macOS
 
-DualSense は HID ゲームパッドで MIDI を喋れないため、
-このブリッジが入力を MIDI に変換し、仮想 MIDI ポート
-"DualSense MIDI" として djay Pro などのアプリに見せる。
+A DualSense is an HID gamepad: it speaks HID, not MIDI. That is why a
+Bluetooth-paired DualSense never shows up as a MIDI device in djay,
+Ableton, Logic, etc. This bridge reads the gamepad and re-emits every
+input as MIDI on a Core MIDI *virtual* port, so any app sees it as a
+normal MIDI controller. No IAC Driver configuration required.
 
-使い方:
-    python3 dualsense_midi.py            # 通常起動
-    python3 dualsense_midi.py --probe    # ボタン番号調査モード
-    python3 dualsense_midi.py --ports    # MIDI ポート一覧
+Usage:
+    python3 dualsense_midi.py            # run the bridge
+    python3 dualsense_midi.py --probe    # print raw button/axis numbers
+    python3 dualsense_midi.py --ports    # list MIDI destinations
+    python3 dualsense_midi.py --test     # send a test pattern
+    python3 dualsense_midi.py --quiet    # run without input logging
 
-djay Pro 側:
-    メニューバー「MIDI」→ "DualSense MIDI" → Configure... → MIDI Learn
-    ※ MIDI マッピングは djay PRO サブスクリプションが必要
+In djay Pro:
+    menu bar "MIDI" -> "DualSense MIDI" -> "Configure..." -> MIDI Learn
+    NOTE: MIDI mapping requires a djay PRO subscription.
+    NOTE: start this bridge BEFORE launching djay, or restart djay.
 """
 
 import argparse
@@ -33,18 +38,22 @@ import rtmidi  # noqa: E402
 HERE = os.path.dirname(os.path.abspath(__file__))
 CONFIG_PATH = os.path.join(HERE, "mapping.json")
 
-# ---------------------------------------------------------------- 既定マッピング
-# buttons: SDL の生ボタン番号 -> MIDI ノート番号 / ラベル
-# axes   : SDL の生軸番号     -> MIDI CC 番号 / ラベル
+# Names reported by SDL/IOKit for a PS5 pad (and a PS4 pad, which is
+# intentionally accepted too since it uses the same layout).
+CONTROLLER_HINTS = ("DualSense", "PS5", "DualShock", "Wireless Controller")
+
+# ------------------------------------------------------------------ defaults
+# buttons: raw SDL button index -> MIDI note number / label
+# axes   : raw SDL axis index   -> MIDI CC number / label
 DEFAULT_MAPPING = {
     "midi_port_name": "DualSense MIDI",
     "channel": 0,
     "deadzone": 0.08,
     "buttons": {
-        "0":  {"note": 38, "label": "□  Square"},
-        "1":  {"note": 36, "label": "✕  Cross"},
-        "2":  {"note": 37, "label": "○  Circle"},
-        "3":  {"note": 39, "label": "△  Triangle"},
+        "0":  {"note": 38, "label": "Square"},
+        "1":  {"note": 36, "label": "Cross"},
+        "2":  {"note": 37, "label": "Circle"},
+        "3":  {"note": 39, "label": "Triangle"},
         "4":  {"note": 44, "label": "L1"},
         "5":  {"note": 45, "label": "R1"},
         "6":  {"note": 46, "label": "L2 (digital)"},
@@ -53,8 +62,8 @@ DEFAULT_MAPPING = {
         "9":  {"note": 49, "label": "Options"},
         "10": {"note": 50, "label": "L3"},
         "11": {"note": 51, "label": "R3"},
-        "12": {"note": 52, "label": "PS / Menu"},
-        "13": {"note": 53, "label": "Mic mute?"},
+        "12": {"note": 52, "label": "PS"},
+        "13": {"note": 53, "label": "Mic mute"},
         "14": {"note": 54, "label": "Touchpad"},
         "15": {"note": 40, "label": "?"},
         "16": {"note": 41, "label": "?"},
@@ -71,6 +80,7 @@ DEFAULT_MAPPING = {
 
 
 def load_mapping() -> dict:
+    """Load mapping.json, creating it from the defaults on first run."""
     if os.path.exists(CONFIG_PATH):
         with open(CONFIG_PATH, encoding="utf-8") as f:
             cfg = json.load(f)
@@ -83,11 +93,23 @@ def load_mapping() -> dict:
 
 
 def to_7bit(v: float, invert: bool) -> int:
-    """-1.0 .. 1.0 を 0..127 に変換"""
+    """Convert a -1.0 .. 1.0 axis value to 0..127."""
     if invert:
         v = -v
     n = int(round((v + 1.0) / 2.0 * 127))
     return max(0, min(127, n))
+
+
+def open_controller():
+    """Return the first joystick that looks like a PlayStation pad."""
+    pygame.joystick.init()
+    for i in range(pygame.joystick.get_count()):
+        j = pygame.joystick.Joystick(i)
+        j.init()
+        name = j.get_name()
+        if any(h.lower() in name.lower() for h in CONTROLLER_HINTS):
+            return j
+    return None
 
 
 class Bridge:
@@ -110,7 +132,7 @@ class Bridge:
         self.last_btn = {}
         self.running = True
 
-    # ------------------------------------------------------------ MIDI
+    # ------------------------------------------------------------- MIDI out
     def note(self, number: int, on: bool, velocity: int = 100):
         status = 0x90 if on else 0x80
         self.midi.send_message([status | self.channel, number, velocity if on else 0])
@@ -118,26 +140,20 @@ class Bridge:
     def cc(self, number: int, value: int):
         self.midi.send_message([0xB0 | self.channel, number, value])
 
-    # ------------------------------------------------------------ 入力
-    def find_controller(self):
-        for i in range(pygame.joystick.get_count()):
-            j = pygame.joystick.Joystick(i)
-            j.init()
-            if "DualSense" in j.get_name() or "PS5" in j.get_name() or "Wireless Controller" in j.get_name():
-                return j
-        return None
-
+    # ---------------------------------------------------------------- input
     def run(self):
-        print(f"[OK] 仮想 MIDI ポート作成: {self.port_name}")
+        print(f"[OK] Virtual MIDI port created: {self.port_name}")
         while self.running:
             if self.joy is None:
-                self.joy = self.find_controller()
+                self.joy = open_controller()
                 if self.joy is None:
-                    print("[..] DualSense を探しています... (PS + Create 長押しでペアリング)", flush=True)
+                    print("[..] Looking for a DualSense... "
+                          "(hold PS + Create to pair)", flush=True)
                     time.sleep(2.0)
                     continue
-                print(f"[OK] 接続: {self.joy.get_name()} "
-                      f"(axes={self.joy.get_numaxes()}, buttons={self.joy.get_numbuttons()})")
+                print(f"[OK] Connected: {self.joy.get_name()} "
+                      f"(axes={self.joy.get_numaxes()}, "
+                      f"buttons={self.joy.get_numbuttons()})")
                 self.last_axis.clear()
                 self.last_btn.clear()
                 for _ in range(5):
@@ -152,15 +168,15 @@ class Bridge:
                 continue
 
             for ev in pygame.event.get():
-                if ev.type in (pygame.JOYDEVICEREMOVED, pygame.JOYDEVICEREMOVED):
-                    print("[!!] コントローラが切断されました")
+                if ev.type == pygame.JOYDEVICEREMOVED:
+                    print("[!!] Controller disconnected", flush=True)
                     self.joy = None
             if self.joy is not None:
                 self.poll()
             time.sleep(0.005)
 
     def poll(self):
-        """イベントに頼らず毎フレーム状態を読む（取りこぼし防止）"""
+        """Read state every frame instead of trusting events alone."""
         j = self.joy
         try:
             nb = j.get_numbuttons()
@@ -204,13 +220,15 @@ class Bridge:
         self.last_axis[idx] = val
         self.cc(int(m["cc"]), val)
         if self.verbose:
-            print(f"    axis {idx:>2} -> CC {int(m['cc']):<3} = {val:<4} {m.get('label','')}", flush=True)
+            print(f"    axis {idx:>2} -> CC {int(m['cc']):<3} = {val:<4} "
+                  f"{m.get('label','')}", flush=True)
 
     def close(self):
         self.running = False
         try:
-            for i in range(16):
-                self.note(i, False)
+            # Release only the notes this mapping can actually produce.
+            for m in self.bmap.values():
+                self.note(int(m["note"]), False)
             self.midi.close_port()
         except Exception:
             pass
@@ -218,19 +236,17 @@ class Bridge:
 
 
 def probe():
-    """ボタン/軸の生番号を調べるモード"""
+    """Print the raw button/axis numbers as you press them."""
     pygame.init()
     pygame.joystick.init()
-    j = None
-    for i in range(pygame.joystick.get_count()):
-        j = pygame.joystick.Joystick(i)
-        j.init()
+    j = open_controller()
     if j is None:
-        print("コントローラが見つかりません")
+        print("No PlayStation controller found. Pair it first "
+              "(hold PS + Create) and try again.")
         return
-    print(f"検出: {j.get_name()} axes={j.get_numaxes()} buttons={j.get_numbuttons()}")
-    print("ボタンを押す / スティック・トリガーを動かすと番号が表示されます。Ctrl+C で終了。\n")
-    prev = [0] * j.get_numbuttons()
+    print(f"Found: {j.get_name()} "
+          f"axes={j.get_numaxes()} buttons={j.get_numbuttons()}")
+    print("Press buttons / move sticks and triggers. Ctrl+C to quit.\n")
     prevax = [0.0] * j.get_numaxes()
     try:
         while True:
@@ -244,24 +260,29 @@ def probe():
                         prevax[ev.axis] = ev.value
             time.sleep(0.005)
     except KeyboardInterrupt:
-        print("\n終了")
+        print("\nBye")
     pygame.quit()
 
 
 def list_ports():
     mo = rtmidi.MidiOut()
-    print("利用可能な MIDI 出力先:")
+    print("Available MIDI destinations:")
     for i, p in enumerate(mo.get_ports()):
         print(f"  [{i}] {p}")
-    print("\n(仮想ポートは起動後に他アプリから見えるようになります)")
+    print("\n(A virtual port becomes visible to other apps after it is created.)")
 
 
 def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--probe", action="store_true", help="ボタン番号調査モード")
-    ap.add_argument("--ports", action="store_true", help="MIDI ポート一覧")
-    ap.add_argument("--quiet", action="store_true", help="ログを出さない")
-    ap.add_argument("--test", action="store_true", help="動作確認用のテスト信号を送信")
+    ap = argparse.ArgumentParser(
+        description="Turn a PS5 DualSense into a MIDI controller on macOS.")
+    ap.add_argument("--probe", action="store_true",
+                    help="print raw button/axis numbers")
+    ap.add_argument("--ports", action="store_true",
+                    help="list MIDI destinations")
+    ap.add_argument("--quiet", action="store_true",
+                    help="suppress input logging")
+    ap.add_argument("--test", action="store_true",
+                    help="send a test pattern, then keep running")
     args = ap.parse_args()
 
     if args.ports:
@@ -274,7 +295,7 @@ def main():
     cfg = load_mapping()
     b = Bridge(cfg, verbose=not args.quiet)
     if args.test:
-        print("[test] Note 36 ON/OFF と CC 1 のスイープを送信します")
+        print("[test] Sending Note 36-39 on/off and a CC 1 sweep")
         for n in (36, 37, 38, 39):
             b.note(n, True)
             time.sleep(0.4)
@@ -283,7 +304,7 @@ def main():
         for v in (0, 64, 127, 64, 0):
             b.cc(1, v)
             time.sleep(0.3)
-        print("[test] 送信完了")
+        print("[test] Done")
 
     def handler(signum, frame):
         b.close()
@@ -292,10 +313,10 @@ def main():
     signal.signal(signal.SIGINT, handler)
     signal.signal(signal.SIGTERM, handler)
 
-    print(f"[..] {CONFIG_PATH} のマッピングを使用")
-    print("[..] djay Pro → メニューバー「MIDI」→ "
-          f"\"{cfg.get('midi_port_name')}\" → Configure... で割り当ててください")
-    print("[..] 終了は Ctrl+C\n")
+    print(f"[..] Using mapping from {CONFIG_PATH}")
+    print(f"[..] In djay Pro: menu bar \"MIDI\" -> "
+          f"\"{cfg.get('midi_port_name')}\" -> \"Configure...\"")
+    print("[..] Ctrl+C to quit\n")
     b.run()
 
 

@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""仮想 MIDI ポート "DualSense MIDI" から届くメッセージを表示する動作確認用モニタ。
+"""Debug monitor: prints MIDI messages arriving from the virtual port.
 
-使い方:
-    python3 midi_monitor.py [秒数]
+Usage:
+    python3 midi_monitor.py [seconds]
+
+Start dualsense_midi.py first, then run this to confirm that notes and
+CC messages are actually being emitted.
 """
 import sys
 import time
@@ -28,8 +31,8 @@ def describe(msg):
 
 
 def main():
-    # CoreMIDI のポート一覧はクライアント生成時のスナップショットになるため、
-    # 見つかるまで再スキャンする
+    # Core MIDI's port list is a snapshot taken when the client is created,
+    # so a port created later needs a re-scan.
     mi = None
     idx, port_label = None, None
     deadline = time.time() + 20.0
@@ -39,17 +42,17 @@ def main():
         hit = next((i for i, p in enumerate(ports) if TARGET in p), None)
         if hit is not None:
             mi, idx, port_label = cand, hit, ports[hit]
-            print("検出された MIDI 入力ポート:")
+            print("MIDI input ports found:")
             for p in ports:
                 print(f"  - {p}")
             break
         del cand
         time.sleep(0.5)
     if idx is None:
-        print(f"\n!! '{TARGET}' が見つかりません。dualsense_midi.py を先に起動してください。")
+        print(f"\n!! '{TARGET}' not found. Start dualsense_midi.py first.")
         return 1
     mi.open_port(idx)
-    print(f"\n'{port_label}' を監視中（{SECONDS}秒）...\n")
+    print(f"\nMonitoring '{port_label}' for {SECONDS} seconds...\n")
     end = time.time() + SECONDS
     count = 0
     while time.time() < end:
@@ -58,9 +61,9 @@ def main():
             count += 1
             print(f"  {describe(m[0])}", flush=True)
         time.sleep(0.005)
-    print(f"\n受信メッセージ数: {count}")
+    print(f"\nMessages received: {count}")
     if count == 0:
-        print("（0件です。コントローラのボタンやスティックを動かすと表示されます）")
+        print("(Nothing yet - press a button or move a stick.)")
     return 0
 
 
