@@ -34,7 +34,8 @@ if pgrep -f dualsense_midi.py > /dev/null; then
   echo "      already running (PID: $(pgrep -f dualsense_midi.py | tr '\n' ' '))"
 else
   echo "      starting..."
-  nohup "$PY" dualsense_midi.py --quiet > /dev/null 2>&1 &
+  LOG="$(pwd)/bridge.log"
+  nohup "$PY" dualsense_midi.py > "$LOG" 2>&1 &
   for _ in 1 2 3 4 5 6 7 8 9 10; do
     sleep 0.5
     pgrep -f dualsense_midi.py > /dev/null && break
@@ -56,23 +57,15 @@ fi
 
 # ------------------------------------------------ 3) djay
 echo "[3/3] ${APP}"
+# djay only scans MIDI devices at launch, so a running instance will never
+# see the port. Always restart it - that is the whole point of this script.
 if pgrep -x "$APP" > /dev/null; then
-  echo "      ${APP} is already running."
-  echo "      It only scans MIDI devices at launch, so it needs a restart."
-  printf "      Restart it now? [y/N]: "
-  read -r ans
-  if [ "$ans" = "y" ] || [ "$ans" = "Y" ]; then
-    osascript -e "quit app \"${APP}\"" > /dev/null 2>&1
-    sleep 3
-    open -a "$APP"
-    echo "      ${APP} restarted"
-  else
-    echo "      skipped. Restart ${APP} yourself if the port does not show up."
-  fi
-else
-  open -a "$APP"
-  echo "      ${APP} launched"
+  echo "      restarting ${APP} (it only scans MIDI devices at launch)..."
+  osascript -e "quit app \"${APP}\"" > /dev/null 2>&1
+  sleep 4
 fi
+open -a "$APP"
+echo "      ${APP} launched"
 
 echo "=============================================="
 echo " Done. In djay: menu bar MIDI -> 'DualSense MIDI'."
