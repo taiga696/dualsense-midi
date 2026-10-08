@@ -89,6 +89,7 @@ If your app is already running, restart it. `dj.command` below handles this for 
 | `button_probe.command` | prints raw button / axis numbers |
 | `install_service.command` | installs the bridge as a LaunchAgent (auto-start at login, auto-restart on crash) |
 | `uninstall_service.command` | removes the LaunchAgent |
+| `status.command` | health check: bridge, LaunchAgent, MIDI port, Bluetooth, and how many times it has restarted |
 
 ### Optional: run it automatically at login
 

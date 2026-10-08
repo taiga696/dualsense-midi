@@ -74,6 +74,7 @@ djay を含む多くのアプリは**起動時に一度だけ** MIDI 機器を�
 | `button_probe.command` | ボタン番号の調査 |
 | `install_service.command` | LaunchAgent として登録（ログイン時自動起動・クラッシュ時自動復帰） |
 | `uninstall_service.command` | LaunchAgent の解除 |
+| `status.command` | 状態チェック（ブリッジ・LaunchAgent・MIDIポート・Bluetooth・再起動回数） |
 
 ```bash
 alias dj="$HOME/DualSenseMIDI/dj.command"
