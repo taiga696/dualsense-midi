@@ -20,6 +20,23 @@ pick_python() {
   echo "python3"
 }
 PY="$(pick_python)"
+LABEL="com.dualsense.midi"
+PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
+
+# If it was installed as a LaunchAgent, hand control back to launchd instead
+# of running a second, unmanaged copy.
+if [ -f "$PLIST" ]; then
+  echo "LaunchAgent found - starting via launchd..."
+  launchctl bootstrap "gui/$UID" "$PLIST" > /dev/null 2>&1 \
+    || launchctl load -w "$PLIST" > /dev/null 2>&1
+  sleep 3
+  if pgrep -f dualsense_midi.py > /dev/null; then
+    echo "DualSense MIDI is running (managed by launchd)."
+  else
+    echo "!! launchd did not start it. Check: tail -20 $(pwd)/bridge.log"
+  fi
+  exit 0
+fi
 
 if pgrep -f dualsense_midi.py > /dev/null; then
   echo "DualSense MIDI is already running. PID: $(pgrep -f dualsense_midi.py | tr '\n' ' ')"
