@@ -1,0 +1,107 @@
+{
+  "midi_port_name": "DualSense MIDI",
+  "channel": 0,
+  "deadzone": 0.08,
+  "buttons": {
+    "0": {
+      "note": 38,
+      "label": "□  Square"
+    },
+    "1": {
+      "note": 36,
+      "label": "✕  Cross"
+    },
+    "2": {
+      "note": 37,
+      "label": "○  Circle"
+    },
+    "3": {
+      "note": 39,
+      "label": "△  Triangle"
+    },
+    "4": {
+      "note": 44,
+      "label": "L1"
+    },
+    "5": {
+      "note": 45,
+      "label": "R1"
+    },
+    "6": {
+      "note": 46,
+      "label": "L2 (digital)"
+    },
+    "7": {
+      "note": 47,
+      "label": "R2 (digital)"
+    },
+    "8": {
+      "note": 48,
+      "label": "Create"
+    },
+    "9": {
+      "note": 49,
+      "label": "Options"
+    },
+    "10": {
+      "note": 50,
+      "label": "L3"
+    },
+    "11": {
+      "note": 51,
+      "label": "R3"
+    },
+    "12": {
+      "note": 52,
+      "label": "PS / Menu"
+    },
+    "13": {
+      "note": 53,
+      "label": "Mic mute?"
+    },
+    "14": {
+      "note": 54,
+      "label": "Touchpad"
+    },
+    "15": {
+      "note": 40,
+      "label": "?"
+    },
+    "16": {
+      "note": 41,
+      "label": "?"
+    }
+  },
+  "axes": {
+    "0": {
+      "cc": 7,
+      "label": "Left stick X",
+      "invert": false
+    },
+    "1": {
+      "cc": 8,
+      "label": "Left stick Y",
+      "invert": true
+    },
+    "2": {
+      "cc": 10,
+      "label": "Right stick X",
+      "invert": false
+    },
+    "3": {
+      "cc": 11,
+      "label": "Right stick Y",
+      "invert": true
+    },
+    "4": {
+      "cc": 1,
+      "label": "L2 trigger",
+      "invert": false
+    },
+    "5": {
+      "cc": 2,
+      "label": "R2 trigger",
+      "invert": false
+    }
+  }
+}
