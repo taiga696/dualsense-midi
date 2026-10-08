@@ -64,17 +64,34 @@ djay を含む多くのアプリは**起動時に一度だけ** MIDI 機器を�
 
 すでにアプリが動いている場合は再起動してください（`dj.command` が自動で面倒を見ます）。
 
+### 有線と無線、どちらがいい？
+
+どちらでも動きますが、**有線（USB-C）のほうが安定します**。Mac が近くにあるなら有線推奨です。
+
+| | USB（有線） | Bluetooth |
+|---|---|---|
+| 準備 | ケーブルを挿すだけ | 初回だけ PS + Create でペアリング |
+| スリープで切れる | なし | あり（放置するとスリープして切断） |
+| PSボタンの地雷 | ほぼ無害 | 長押しで切断 |
+| 遅延 | 最小 | DJ用途なら十分（ポーリング約5ms） |
+
+ケーブルを挿すと macOS が自動で Bluetooth から有線に切り替えるため、挿したあと
+Bluetooth 側が **「Not Connected」** になっていても正常です（故障ではありません）。
+充電も同時にできます。
+
+切り替えたあとはブリッジを再起動（または抜き差し）し、アプリも再起動して再走査させてください。
+
 ### 便利コマンド（macOS）
 
 | コマンド | 内容 |
 |---|---|
-| `dj.command` | ブリッジ起動 + コントローラ接続チェック + djay Pro 起動/再起動 |
+| `dj.command` | ブリッジ起動 + コントローラ接続チェック（USB / Bluetooth）+ djay Pro 起動/再起動 |
 | `start.command` | ブリッジだけ起動 |
 | `stop.command` | ブリッジ停止 |
 | `button_probe.command` | ボタン番号の調査 |
 | `install_service.command` | LaunchAgent として登録（ログイン時自動起動・クラッシュ時自動復帰） |
 | `uninstall_service.command` | LaunchAgent の解除 |
-| `status.command` | 状態チェック（ブリッジ・LaunchAgent・MIDIポート・Bluetooth・再起動回数） |
+| `status.command` | 状態チェック（ブリッジ・LaunchAgent・MIDIポート・USB/Bluetooth接続・再起動回数） |
 
 ```bash
 alias dj="$HOME/DualSenseMIDI/dj.command"
@@ -131,10 +148,17 @@ GUI で設定したい場合は「システム設定 → 一般 → ログイン
 | 「DualSense MIDI」が出てこない | ブリッジ未起動 / アプリより後に起動した | ブリッジ → アプリの順で起動 |
 | マッピング画面が開けない（djay） | PRO サブスク未契約 | サブスクが必要 |
 | ボタンが反応しない | ボタン番号のズレ | `--probe` で確認して `mapping.json` を修正 |
-| コントローラを検出しない | ペアリング切れ | PS + Create 長押しで再ペアリング |
+| コントローラを検出しない | ペアリング切れ / ケーブル未接続 | PS + Create 長押しで再ペアリング、または USB-C を挿す |
+| ケーブルを挿しても変化しない | 充電専用ケーブル / ハブ経由 | 本体付属ケーブルで Mac に直挿し |
+
+Mac が実際にどう認識しているかはこれで確認できます。
+
+```bash
+ioreg -p IOUSB -w0 -l | grep -i DualSense   # 有線
+```
 
 Bluetooth でも遅延は体感ほぼありません（ポーリング 5ms / 200Hz、MIDI は Mac 内部の
-Core MIDI を通るため外部バッファがありません）。さらに詰めたい場合は USB 接続にしてください。
+Core MIDI を通るため外部バッファがありません）。有線ならさらにわずかに速くなります。
 
 ## 仕組み
 

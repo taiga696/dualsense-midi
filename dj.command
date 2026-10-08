@@ -48,11 +48,19 @@ else
 fi
 
 # ------------------------------------------------ 2) controller
+# Plugged in over USB, macOS switches the controller away from Bluetooth on
+# its own - so "Not Connected" on the Bluetooth side is expected, not a fault.
 echo "[2/3] DualSense connection"
-if system_profiler SPBluetoothDataType 2>/dev/null | grep -q "DualSense Wireless Controller"; then
-  echo "      DualSense detected"
+if ioreg -p IOUSB -w0 -l 2>/dev/null | grep -qi "DualSense"; then
+  echo "      DualSense detected over USB (wired)"
+elif system_profiler SPBluetoothDataType 2>/dev/null \
+     | awk '/Connected:/{s="C"} /Not Connected:/{s="N"} /DualSense/{print s}' \
+     | grep -q "C"; then
+  echo "      DualSense detected over Bluetooth"
 else
-  echo "      !! DualSense not found. Hold PS + Create to pair it."
+  echo "      !! DualSense not found."
+  echo "         Wired: plug in the USB-C cable."
+  echo "         Wireless: hold PS + Create until the light bar blinks."
 fi
 
 # ------------------------------------------------ 3) djay

@@ -79,17 +79,36 @@ Most apps (including djay) scan for MIDI devices **once at launch**. So:
 
 If your app is already running, restart it. `dj.command` below handles this for you.
 
+### Wired or wireless?
+
+Both work. **Wired (USB-C) is the more stable of the two**, and it is what we
+recommend if your Mac is close enough:
+
+| | USB (wired) | Bluetooth |
+|---|---|---|
+| Setup | plug the cable in | pair once with PS + Create |
+| Sleep disconnects | none | yes — the controller sleeps when idle |
+| PS button risk | harmless | long-press drops the link |
+| Latency | lowest | fine for DJ use (~5 ms polling) |
+
+Plugging the cable in makes macOS switch the controller off Bluetooth by itself,
+so seeing **"Not Connected"** on the Bluetooth side afterwards is normal — not a
+fault. The controller charges at the same time.
+
+Either way, restart the bridge (or just unplug/replug) after switching, then
+restart your app so it rescans.
+
 ### Helper scripts (macOS)
 
 | Script | What it does |
 |---|---|
-| `dj.command` | starts the bridge, checks the Bluetooth connection, then launches/restarts djay Pro |
+| `dj.command` | starts the bridge, checks the controller (USB or Bluetooth), then launches/restarts djay Pro |
 | `start.command` | starts the bridge only (double-clickable) |
 | `stop.command` | stops the bridge |
 | `button_probe.command` | prints raw button / axis numbers |
 | `install_service.command` | installs the bridge as a LaunchAgent (auto-start at login, auto-restart on crash) |
 | `uninstall_service.command` | removes the LaunchAgent |
-| `status.command` | health check: bridge, LaunchAgent, MIDI port, Bluetooth, and how many times it has restarted |
+| `status.command` | health check: bridge, LaunchAgent, MIDI port, USB/Bluetooth link, and how many times it has restarted |
 
 ### Optional: run it automatically at login
 
@@ -208,12 +227,19 @@ neutral on its own, which feels good.
 | "DualSense MIDI" does not appear | bridge not running, or started after the app | start the bridge first, restart the app |
 | Mapping screen will not open (djay) | no PRO subscription | djay Pro subscription required |
 | Buttons do nothing | button indices differ | run `--probe`, fix `mapping.json` |
-| Controller not detected | Bluetooth pairing lost | hold **PS + Create** to re-pair |
+| Controller not detected | Bluetooth pairing lost, or USB cable not seated | hold **PS + Create** to re-pair, or plug the USB-C cable in |
+| Cable plugged in but nothing changes | charge-only cable, or hub in between | use the cable that came with the console, plug straight into the Mac |
 | Parameters drift on their own | gyro/accelerometer noise | this bridge ignores motion sensors |
+
+To check what the Mac actually sees:
+
+```bash
+ioreg -p IOUSB -w0 -l | grep -i DualSense   # wired
+```
 
 Latency over Bluetooth is not noticeable for DJ use: polling runs at 200 Hz
 (5 ms) and the MIDI travels inside the Mac's own Core MIDI, with no external
-audio buffer involved. If you still want the last few milliseconds, use USB.
+audio buffer involved. Wired is a little snappier still.
 
 ---
 

@@ -39,13 +39,20 @@ hit = [p for p in ports if "DualSense" in p]
 print("[port]    " + (("visible: " + hit[0]) if hit else "MISSING"))
 PYCODE
 
-# ------------------------------------------------------------ bluetooth
-BT=$(system_profiler SPBluetoothDataType 2>/dev/null | awk '
-  /Connected:/     { sec = "Connected" }
-  /Not Connected:/ { sec = "Disconnected" }
-  /DualSense/      { print sec }
-')
-echo "[bt]      ${BT:-not found}"
+# ------------------------------------------------------------ transport
+# With the USB-C cable plugged in, macOS moves the controller off Bluetooth
+# by itself, so "Not Connected" there is normal. Check USB first.
+if ioreg -p IOUSB -w0 -l 2>/dev/null | grep -qi "DualSense"; then
+  LINK="USB (wired)"
+else
+  BT=$(system_profiler SPBluetoothDataType 2>/dev/null | awk '
+    /Connected:/     { sec = "Connected" }
+    /Not Connected:/ { sec = "Disconnected" }
+    /DualSense/      { print sec }
+  ')
+  LINK="Bluetooth ${BT:-not found}"
+fi
+echo "[link]    ${LINK}"
 
 # ------------------------------------------------------------ history
 if [ -f "$LOG" ]; then
@@ -59,6 +66,6 @@ if [ -f "$LOG" ]; then
 fi
 
 echo "=============================================="
-echo " Healthy = running + port visible + bt Connected"
+echo " Healthy = running + port visible + link found"
 echo "          + restarts NOT increasing while you play"
 echo "=============================================="
