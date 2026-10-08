@@ -87,6 +87,23 @@ If your app is already running, restart it. `dj.command` below handles this for 
 | `start.command` | starts the bridge only (double-clickable) |
 | `stop.command` | stops the bridge |
 | `button_probe.command` | prints raw button / axis numbers |
+| `install_service.command` | installs the bridge as a LaunchAgent (auto-start at login, auto-restart on crash) |
+| `uninstall_service.command` | removes the LaunchAgent |
+
+### Optional: run it automatically at login
+
+```bash
+cd ~/DualSenseMIDI
+./install_service.command
+```
+
+This registers a LaunchAgent (`~/Library/LaunchAgents/com.dualsense.midi.plist`) with
+`RunAtLoad` and `KeepAlive`, so the MIDI port is always up before you open your DJ app —
+no more start-order problems. Logs go to `bridge.log`. Remove it with
+`uninstall_service.command`.
+
+Run it from a normal Terminal window (`launchctl` needs your GUI session). If you
+prefer a GUI route instead: System Settings → General → Login Items → add `start.command`.
 
 Add an alias if you like:
 

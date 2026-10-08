@@ -72,10 +72,27 @@ djay を含む多くのアプリは**起動時に一度だけ** MIDI 機器を�
 | `start.command` | ブリッジだけ起動 |
 | `stop.command` | ブリッジ停止 |
 | `button_probe.command` | ボタン番号の調査 |
+| `install_service.command` | LaunchAgent として登録（ログイン時自動起動・クラッシュ時自動復帰） |
+| `uninstall_service.command` | LaunchAgent の解除 |
 
 ```bash
 alias dj="$HOME/DualSenseMIDI/dj.command"
 ```
+
+### おまけ：ログイン時に自動起動する
+
+```bash
+cd ~/DualSenseMIDI
+./install_service.command
+```
+
+LaunchAgent（`~/Library/LaunchAgents/com.dualsense.midi.plist`）として登録され、
+`RunAtLoad` + `KeepAlive` により**ログイン時に自動起動・クラッシュ時も自動復帰**します。
+「djay より先にブリッジ」という起動順の問題が根本から消えます。ログは `bridge.log` へ。
+解除は `./uninstall_service.command`。
+
+※ 通常の Terminal ウィンドウから実行してください（`launchctl` は GUI セッションが必要です）。
+GUI で設定したい場合は「システム設定 → 一般 → ログイン項目」に `start.command` を追加してください。
 
 ## マッピング
 
