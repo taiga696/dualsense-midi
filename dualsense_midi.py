@@ -100,8 +100,16 @@ def to_7bit(v: float, invert: bool) -> int:
     return max(0, min(127, n))
 
 
-def open_controller():
-    """Return the first joystick that looks like a PlayStation pad."""
+def open_controller(rescan: bool = False):
+    """Return the first joystick that looks like a PlayStation pad.
+
+    SDL only notices hot-plugged devices while events are being pumped, and
+    it caches the joystick list. A controller that briefly drops out (sleep,
+    Bluetooth hiccup) is therefore never seen again unless we tear the
+    subsystem down and re-enumerate it.
+    """
+    if rescan:
+        pygame.joystick.quit()
     pygame.joystick.init()
     for i in range(pygame.joystick.get_count()):
         j = pygame.joystick.Joystick(i)
@@ -144,8 +152,15 @@ class Bridge:
     def run(self):
         print(f"[OK] Virtual MIDI port created: {self.port_name}")
         while self.running:
+            # Must happen on every iteration, including the "searching" path:
+            # SDL only picks up hot-plugged devices while events are pumped.
+            try:
+                pygame.event.pump()
+            except Exception:
+                pass
+
             if self.joy is None:
-                self.joy = open_controller()
+                self.joy = open_controller(rescan=True)
                 if self.joy is None:
                     print("[..] Looking for a DualSense... "
                           "(hold PS + Create to pair)", flush=True)
@@ -161,19 +176,20 @@ class Bridge:
                     time.sleep(0.05)
                 for a in range(self.joy.get_numaxes()):
                     self.emit_axis(a)
-            try:
-                pygame.event.pump()
-            except Exception:
-                self.joy = None
-                continue
 
             for ev in pygame.event.get():
                 if ev.type == pygame.JOYDEVICEREMOVED:
-                    print("[!!] Controller disconnected", flush=True)
-                    self.joy = None
+                    self.drop("disconnected")
             if self.joy is not None:
                 self.poll()
             time.sleep(0.005)
+
+    def drop(self, why: str = ""):
+        """Forget the current joystick so the next iteration re-scans."""
+        if self.joy is not None:
+            suffix = f" ({why})" if why else ""
+            print(f"[!!] Controller lost{suffix} - reconnecting...", flush=True)
+        self.joy = None
 
     def poll(self):
         """Read state every frame instead of trusting events alone."""
@@ -182,13 +198,13 @@ class Bridge:
             nb = j.get_numbuttons()
             na = j.get_numaxes()
         except Exception:
-            self.joy = None
+            self.drop("read error")
             return
         for b in range(nb):
             try:
                 v = j.get_button(b)
             except Exception:
-                self.joy = None
+                self.drop("button read error")
                 return
             if v != self.last_btn.get(b):
                 self.last_btn[b] = v
