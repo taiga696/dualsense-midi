@@ -17,9 +17,6 @@ DualSense --(Bluetooth / USB)--> dualsense_midi.py --(Core MIDI)--> 仮想ポー
 - Python 3.9 以上
 - MIDI 入力に対応したアプリ（djay Pro など）
 
-> **注意**: djay Pro で MIDI マッピングを使うには **PRO サブスクリプション**が必要です
-> （Algoriddim 公式: https://help.algoriddim.com/user-manual/djay-pro-mac/midi/mapping）
-
 ## インストール
 
 ```bash
