@@ -139,6 +139,9 @@ class Bridge:
         self.last_axis = {}
         self.last_btn = {}
         self.running = True
+        # Parent PID 1 means launchd owns us, so exiting is safe: KeepAlive
+        # brings us straight back with a clean SDL.
+        self.under_launchd = (os.getppid() == 1)
 
     # ------------------------------------------------------------- MIDI out
     def note(self, number: int, on: bool, velocity: int = 100):
@@ -150,7 +153,14 @@ class Bridge:
 
     # ---------------------------------------------------------------- input
     def run(self):
-        print(f"[OK] Virtual MIDI port created: {self.port_name}")
+        print(f"[OK] Virtual MIDI port created: {self.port_name}", flush=True)
+        # A long-lived SDL process can permanently lose sight of a gamepad
+        # that dropped out: even joystick.quit()/init() will not bring it
+        # back. Two escalating recovery steps:
+        #   1. every few misses -> fully re-initialise SDL
+        #   2. still nothing   -> exit so launchd (KeepAlive) restarts us,
+        #                         which always sees the device again
+        misses = 0
         while self.running:
             # Must happen on every iteration, including the "searching" path:
             # SDL only picks up hot-plugged devices while events are pumped.
@@ -162,10 +172,25 @@ class Bridge:
             if self.joy is None:
                 self.joy = open_controller(rescan=True)
                 if self.joy is None:
+                    misses += 1
                     print("[..] Looking for a DualSense... "
                           "(hold PS + Create to pair)", flush=True)
+                    if misses % 5 == 0:
+                        print("[..] re-initialising SDL...", flush=True)
+                        try:
+                            pygame.quit()
+                        except Exception:
+                            pass
+                        pygame.init()
+                        pygame.joystick.init()
+                    if self.under_launchd and misses >= 15:
+                        print("[!!] not recoverable in this process - "
+                              "exiting so launchd restarts me", flush=True)
+                        self.close()
+                        sys.exit(3)
                     time.sleep(2.0)
                     continue
+                misses = 0
                 print(f"[OK] Connected: {self.joy.get_name()} "
                       f"(axes={self.joy.get_numaxes()}, "
                       f"buttons={self.joy.get_numbuttons()})")
