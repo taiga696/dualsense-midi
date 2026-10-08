@@ -62,7 +62,7 @@ DEFAULT_MAPPING = {
         "9":  {"note": 49, "label": "Options"},
         "10": {"note": 50, "label": "L3"},
         "11": {"note": 51, "label": "R3"},
-        "12": {"note": 52, "label": "PS"},
+        "12": {"note": 52, "label": "PS (hold = power off)"},
         "13": {"note": 53, "label": "Mic mute"},
         "14": {"note": 54, "label": "Touchpad"},
         "15": {"note": 40, "label": "?"},
@@ -175,7 +175,7 @@ class Bridge:
                     misses += 1
                     print("[..] Looking for a DualSense... "
                           "(hold PS + Create to pair)", flush=True)
-                    if misses % 5 == 0:
+                    if misses % 4 == 0:
                         print("[..] re-initialising SDL...", flush=True)
                         try:
                             pygame.quit()
@@ -183,12 +183,14 @@ class Bridge:
                             pass
                         pygame.init()
                         pygame.joystick.init()
-                    if self.under_launchd and misses >= 15:
+                    # Don't linger: every second spent here is a second the
+                    # MIDI port is missing from the app's point of view.
+                    if self.under_launchd and misses >= 8:
                         print("[!!] not recoverable in this process - "
                               "exiting so launchd restarts me", flush=True)
                         self.close()
                         sys.exit(3)
-                    time.sleep(2.0)
+                    time.sleep(1.0)
                     continue
                 misses = 0
                 print(f"[OK] Connected: {self.joy.get_name()} "

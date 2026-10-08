@@ -151,6 +151,12 @@ CC and a digital note when fully pressed.
 > Button order can vary by OS / SDL version. If something feels off, run
 > `--probe` and compare the printed numbers with `mapping.json`.
 
+> ⚠️ **Be careful with the PS button.** A quick tap is fine, but holding it for
+> about a second powers the controller off (or puts it into pairing mode). That
+> drops the Bluetooth connection, and with it the MIDI port — your app will
+> lose the device until it is restarted. If you need one more button, use
+> R1 (note 45) instead.
+
 ### Example: a working djay layout
 
 Two-deck layout, verified on djay Pro. Note names as djay displays them
@@ -183,6 +189,10 @@ Two-deck layout, verified on djay Pro. Note names as djay displays them
 | ✕ | Note C2 (36) | Pitch Bend + |
 | ○ | Note C#2 (37) | Pitch Bend − |
 | Right stick Y | CC 11 | Filter |
+
+> ⚠️ **PS = Tempo −** works, but if you hold it slightly too long the controller
+> powers off and the connection drops. If your setup keeps cutting out, move
+> that one action to R1 (Note 45) and leave the PS button alone.
 
 Tempo is on **buttons**, not sticks: a stick snaps back to center when released,
 which would make the tempo jump. Filter on a stick is the opposite — it returns to
