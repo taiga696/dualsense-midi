@@ -23,7 +23,7 @@ DualSense --(Bluetooth / USB)--> dualsense_midi.py --(Core MIDI)--> 仮想ポー
 ## インストール
 
 ```bash
-git clone https://github.com/<あなたのID>/dualsense-midi.git ~/DualSenseMIDI
+git clone https://github.com/taiga696/dualsense-midi.git ~/DualSenseMIDI
 cd ~/DualSenseMIDI
 
 python3 -m venv ~/.dualsense-midi-venv
