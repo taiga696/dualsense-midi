@@ -153,8 +153,8 @@ Edit `mapping.json` and restart to change it.
 | ✕ Cross | 36 | | Options | 49 |
 | ○ Circle | 37 | | L3 | 50 |
 | △ Triangle | 39 | | R3 | 51 |
-| L1 | 44 | | PS | 52 |
-| R1 | 45 | | Mic mute | 53 |
+| L1 | 44 | | (varies) | 52 |
+| R1 | 45 | | (varies) | 53 |
 | L2 (digital) | 46 | | Touchpad | 54 |
 | R2 (digital) | 47 | | | |
 
@@ -168,13 +168,16 @@ Edit `mapping.json` and restart to change it.
 Stick Y axes are inverted by default (up = 127). L2/R2 send **both** a continuous
 CC and a digital note when fully pressed.
 
-> Button order can vary by OS / SDL version. If something feels off, run
-> `--probe` and compare the printed numbers with `mapping.json`.
+> Button order can vary by OS / SDL version. Notes **52** and **53** in
+> particular land on different physical buttons depending on the setup (often
+> the PS button and the mic-mute button, but not always — they were not on our
+> test Mac). If something feels off, run `--probe` and compare the printed
+> numbers with `mapping.json`.
 
-> ⚠️ **Be careful with the PS button.** A quick tap is fine, but holding it for
-> about a second powers the controller off (or puts it into pairing mode). That
-> drops the Bluetooth connection, and with it the MIDI port — your app will
-> lose the device until it is restarted. If you need one more button, use
+> ⚠️ **Avoid the PS button.** A quick tap is usually fine, but holding it for
+> about a second can power the controller off (or put it into pairing mode).
+> That drops the Bluetooth connection, and with it the MIDI port — your app
+> will lose the device until it is restarted. If you need one more button, use
 > R1 (note 45) instead.
 
 ### Example: a working djay layout
@@ -191,7 +194,7 @@ Two-deck layout, verified on djay Pro. Note names as djay displays them
 | R2 | Note B2 (47) | Set Start Cue |
 | L1 | Note G#2 (44) | Loop In/Out |
 | R3 | Note D#3 (51) | Tempo + |
-| PS | Note E3 (52) | Tempo − |
+| (any free button) | Note E3 (52) | Tempo − |
 | Touchpad | Note F#3 (54) | Pitch Bend + |
 | Mic mute | Note F3 (53) | Pitch Bend − |
 | Left stick Y | CC 8 | Filter |
@@ -210,9 +213,10 @@ Two-deck layout, verified on djay Pro. Note names as djay displays them
 | ○ | Note C#2 (37) | Pitch Bend − |
 | Right stick Y | CC 11 | Filter |
 
-> ⚠️ **PS = Tempo −** works, but if you hold it slightly too long the controller
-> powers off and the connection drops. If your setup keeps cutting out, move
-> that one action to R1 (Note 45) and leave the PS button alone.
+> ⚠️ **Note E3 (52)** is whatever button your setup puts there — check it with
+> `--probe` before you rely on it. If it turned out to be the PS button, move
+> that one action to R1 (Note 45): holding PS slightly too long powers the
+> controller off and the connection drops.
 
 Tempo is on **buttons**, not sticks: a stick snaps back to center when released,
 which would make the tempo jump. Filter on a stick is the opposite — it returns to
